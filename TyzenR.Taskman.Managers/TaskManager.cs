@@ -323,7 +323,8 @@ namespace TyzenR.Taskman.Managers
                 new TeamMemberInProgressModel { Id = appInfo.CurrentUserId, Name = appInfo.GetCurrentUser().FirstName, Count = GetCountOf(TaskStatusEnum.InProgress, appInfo.CurrentUserId) };
             }
 
-            foreach (var team in entityContext.Teams.Where(t => t.ManagerId == appInfo.CurrentUserId))
+            var teams = entityContext.Teams.Where(t => t.ManagerId == appInfo.CurrentUserId).ToList();
+            foreach (var team in teams)
             {
                 result.Add(new TeamMemberInProgressModel { Id = team.Id, Name = team.Name.GetFirstName(), Count = GetCountOf(TaskStatusEnum.InProgress, team.Id) });
             }
