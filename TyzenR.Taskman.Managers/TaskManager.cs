@@ -270,8 +270,8 @@ namespace TyzenR.Taskman.Managers
             try
             {
                 var timesheets = await this.entityContext.Tasks
-                    .Where(t => t.Type == TaskTypeEnum.Timesheet && 
-                           t.AssignedTo == userId && 
+                    .Where(t => t.Type == TaskTypeEnum.Timesheet &&
+                           t.AssignedTo == userId &&
                            t.Date >= fromDate && t.Date <= toDate)
                     .ToListAsync();
 
@@ -298,6 +298,37 @@ namespace TyzenR.Taskman.Managers
             totalMinutes = totalMinutes % 60;
 
             return $"{totalHours}h {totalMinutes}m";
+        }
+
+        public int GetCountOf(TaskStatusEnum status, Guid userId)
+        {
+            try
+            {
+                var count = entityContext.Tasks.Count(t => t.AssignedTo == userId && t.Status == status);
+
+                return count;
+            }
+            catch (Exception ex)
+            {
+                SharedUtility.SendEmailToModeratorAsync("Taskman.TaskManager.GetCountOf.Exception", ex.ToString().Break()).Wait();
+            }
+
+            return 0;
+        }
+
+        public IList<TeamMemberInProgressModel> GetTeamInProgressData()
+        {
+            IList<TeamMemberInProgressModel> result = new List<TeamMemberInProgressModel>();
+            {
+                new TeamMemberInProgressModel { Id = appInfo.CurrentUserId, Name = appInfo.GetCurrentUser().FirstName, Count = GetCountOf(TaskStatusEnum.InProgress, appInfo.CurrentUserId) };
+            }
+
+            foreach (var team in entityContext.Teams.Where(t => t.ManagerId == appInfo.CurrentUserId))
+            {
+                result.Add(new TeamMemberInProgressModel { Id = team.Id, Name = team.Name.GetFirstName(), Count = GetCountOf(TaskStatusEnum.InProgress, team.Id) });
+            }
+
+            return result;
         }
     }
 }

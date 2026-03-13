@@ -1,6 +1,7 @@
 ﻿using TyzenR.Account.Entity;
 using TyzenR.EntityLibrary;
 using TyzenR.Taskman.Entity;
+using TyzenR.Taskman.Entity.Models;
 
 namespace TyzenR.Taskman.Managers
 {
@@ -15,5 +16,8 @@ namespace TyzenR.Taskman.Managers
 
         Task<IList<TaskEntity>> GetTimesheetsAsync(Guid userId, DateTime fromDate, DateTime toDate);
         string GetTotalTimeFormatted(IList<TaskEntity> list);
+
+        int GetCountOf(TaskStatusEnum status, Guid userId);
+        IList<TeamMemberInProgressModel> GetTeamInProgressData();
     }
 }

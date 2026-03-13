@@ -1,4 +1,4 @@
-﻿@page "/"
+﻿@page "/tasks"
 
 <PageTitle>Tasks</PageTitle>
 
@@ -11,6 +11,7 @@
 @inject ITaskManager taskManager
 @inject IActionTrackerManager actionTrackerManager
 @inject IJSRuntime JsRuntime
+@inject ITaskManager taskManager
 @inject IAppInfo appInfo
 @inject EntityContext context
 
@@ -125,7 +126,6 @@ else if (TeamMembers != null)
 
     protected async override Task OnAfterRenderAsync(bool firstRender)
     {
-
         if (firstRender)
         {
             TeamMembers = await taskManager.GetTeamMembersAsync(appInfo.GetCurrentUser(), "All");

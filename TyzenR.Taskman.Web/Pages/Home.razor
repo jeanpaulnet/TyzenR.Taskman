@@ -1,0 +1,516 @@
+@page "/"
+
+@using TyzenR.Taskman.Entity
+@using TyzenR.Taskman.Managers
+
+@inject ITaskManager taskManager
+@inject IAppInfo appInfo
+@inject EntityContext context
+
+<PageTitle>Dashboard — Home</PageTitle>
+
+<style>
+
+    :root {
+        --bg: #f0f4f9;
+        --card-bg: #ffffff;
+        --card-border: #dde3ee;
+        --accent: #3a6fd8;
+        --accent-soft: #e8effe;
+        --text-primary: #1a2135;
+        --text-muted: #7a86a0;
+        --shadow: 0 2px 12px rgba(58,111,216,0.08);
+        --radius: 16px;
+        --font-display: 'Syne', sans-serif;
+        --font-body: 'DM Sans', sans-serif;
+    }
+
+    *, *::before, *::after {
+        box-sizing: border-box;
+        margin: 0;
+        padding: 0;
+    }
+
+    body {
+        background: var(--bg);
+        color: var(--text-primary);
+        font-family: var(--font-body);
+        min-height: 100vh;
+        -webkit-font-smoothing: antialiased;
+    }
+
+    .dashboard {
+        max-width: 1100px;
+        margin: 0 auto;
+        padding: 2rem 1.5rem 4rem;
+    }
+
+    .dash-header {
+        margin-bottom: 2.5rem;
+    }
+
+    .dash-header__inner {
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        border-bottom: 1px solid var(--card-border);
+        padding-bottom: 1.25rem;
+    }
+
+    .dash-logo {
+        font-size: 1.6rem;
+        color: var(--accent);
+        line-height: 1;
+    }
+
+    .dash-title {
+        font-family: var(--font-display);
+        font-size: 1.75rem;
+        font-weight: 800;
+        letter-spacing: -0.03em;
+        color: var(--text-primary);
+        flex: 1;
+    }
+
+    .dash-date {
+        font-size: 0.8rem;
+        color: var(--text-muted);
+        font-weight: 300;
+        letter-spacing: 0.02em;
+    }
+
+    .dash-summary {
+        display: flex;
+        gap: 1rem;
+        margin-bottom: 2rem;
+        flex-wrap: wrap;
+    }
+
+    .summary-card {
+        flex: 1;
+        min-width: 140px;
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        padding: 1.1rem 1.4rem;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        box-shadow: var(--shadow);
+        transition: border-color 0.2s, box-shadow 0.2s;
+    }
+
+        .summary-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 4px 20px rgba(58,111,216,0.14);
+        }
+
+    .summary-icon {
+        font-size: 1.5rem;
+        color: var(--accent);
+        opacity: 0.85;
+        line-height: 1;
+    }
+
+    .summary-label {
+        font-size: 0.72rem;
+        color: var(--text-muted);
+        text-transform: uppercase;
+        letter-spacing: 0.08em;
+        margin-bottom: 0.2rem;
+    }
+
+    .summary-value {
+        font-family: var(--font-display);
+        font-size: 1.6rem;
+        font-weight: 700;
+        color: var(--text-primary);
+        line-height: 1;
+    }
+
+    .charts-grid {
+        display: grid;
+        grid-template-columns: repeat(auto-fit, minmax(320px, 1fr));
+        gap: 1.5rem;
+    }
+
+    .chart-card {
+        background: var(--card-bg);
+        border: 1px solid var(--card-border);
+        border-radius: var(--radius);
+        padding: 1.75rem;
+        box-shadow: var(--shadow);
+        transition: border-color 0.25s, box-shadow 0.25s;
+    }
+
+        .chart-card:hover {
+            border-color: var(--accent);
+            box-shadow: 0 6px 28px rgba(58,111,216,0.13);
+        }
+
+    .chart-title {
+        font-family: var(--font-display);
+        font-size: 1.15rem;
+        font-weight: 700;
+        letter-spacing: -0.02em;
+        color: var(--text-primary);
+        margin-bottom: 1.5rem;
+        display: flex;
+        align-items: center;
+        gap: 0.5rem;
+    }
+
+        .chart-title::before {
+            content: '';
+            display: inline-block;
+            width: 8px;
+            height: 8px;
+            border-radius: 50%;
+            background: var(--accent);
+        }
+
+    .chart-wrapper {
+        display: flex;
+        justify-content: center;
+        margin-bottom: 1.5rem;
+    }
+
+    .pie-svg {
+        width: 200px;
+        height: 200px;
+        overflow: visible;
+        filter: drop-shadow(0 3px 10px rgba(58,111,216,0.12));
+    }
+
+    .pie-slice {
+        cursor: pointer;
+        transform-origin: 100px 100px;
+        transition: transform 0.18s ease, opacity 0.18s ease;
+        stroke: var(--card-bg);
+        stroke-width: 2;
+    }
+
+        .pie-slice:hover {
+            transform: scale(1.05);
+            opacity: 0.9;
+        }
+
+    .donut-label-num {
+        font-family: var(--font-display);
+        font-size: 22px;
+        font-weight: 800;
+        fill: var(--text-primary);
+    }
+
+    .donut-label-sub {
+        font-family: var(--font-body);
+        font-size: 10px;
+        fill: var(--text-muted);
+    }
+
+    .legend {
+        list-style: none;
+        display: flex;
+        flex-direction: column;
+        gap: 0.4rem;
+    }
+
+    .legend-item {
+        display: flex;
+        align-items: center;
+        gap: 0.65rem;
+        padding: 0.45rem 0.6rem;
+        border-radius: 8px;
+        cursor: default;
+        transition: background 0.15s;
+        font-size: 0.85rem;
+    }
+
+        .legend-item:hover, .legend-item--active {
+            background: var(--accent-soft);
+        }
+
+    .legend-dot {
+        width: 10px;
+        height: 10px;
+        border-radius: 3px;
+        flex-shrink: 0;
+    }
+
+    .legend-name {
+        flex: 1;
+        color: var(--text-primary);
+        font-weight: 400;
+    }
+
+    .legend-value {
+        color: var(--text-muted);
+        font-weight: 500;
+        min-width: 28px;
+        text-align: right;
+    }
+
+    .legend-pct {
+        color: var(--accent);
+        font-weight: 600;
+        min-width: 42px;
+        text-align: right;
+        font-size: 0.78rem;
+    }
+
+    @@media (max-width: 600px) {
+        .dash-date {
+            display: none;
+        }
+
+        .charts-grid {
+            grid-template-columns: 1fr;
+        }
+    }
+</style>
+
+<div class="dashboard">
+
+    <header class="dash-header">
+        <div class="dash-header__inner">
+            <span class="dash-logo">◈</span>
+            <h1 class="dash-title">Dashboard</h1>
+            <span class="dash-date">@DateTime.Now.ToString("dddd, MMMM d yyyy")</span>
+        </div>
+    </header>
+
+    <section class="dash-summary">
+        <div class="summary-card">
+            <span class="summary-icon">✦</span>
+            <div>
+                <p class="summary-label">In-Progress Items</p>
+                <p class="summary-value">@taskManager.GetCountOf(TaskStatusEnum.InProgress, appInfo.CurrentUserId)</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <span class="summary-icon">⬡</span>
+            <div>
+                <p class="summary-label">Teams</p>
+                <p class="summary-value">@TeamsData.Count</p>
+            </div>
+        </div>
+        <div class="summary-card">
+            <span class="summary-icon">◉</span>
+            <div>
+                <p class="summary-label">Statuses</p>
+                <p class="summary-value">@StatusData.Count</p>
+            </div>
+        </div>
+    </section>
+
+    <section class="charts-grid">
+        @RenderPieChart("Status", StatusData, ref StatusHovered)
+        @RenderPieChart("Teams", TeamsData, ref TeamsHovered)
+    </section>
+
+</div>
+
+@code {
+    protected override System.Threading.Tasks.Task OnInitializedAsync()
+    {
+        // Status Load
+        StatusData = new List<ChartData>()
+        {
+            new ChartData() { Name = "In-Progress", Value = taskManager.GetCountOf(TaskStatusEnum.InProgress, appInfo.CurrentUserId) },
+            new ChartData() { Name = "Completed", Value = taskManager.GetCountOf(TaskStatusEnum.Completed, appInfo.CurrentUserId) },
+        };
+
+        // Teams Load
+        TeamsData = new List<ChartData>();
+        foreach (var member in taskManager.GetTeamInProgressData())
+        {
+            TeamsData.Add(new ChartData() { Name = member.Name, Value = member.Count });
+        }
+
+        return base.OnInitializedAsync();
+    }
+
+
+    // ── Data Model ──────────────────────────────────────────
+
+    public class ChartData
+    {
+        public string Name { get; set; } = string.Empty;
+        public double Value { get; set; }
+    }
+
+    // ── Chart Data ──────────────────────────────────────────
+    private List<ChartData> StatusData = new()
+    {
+        new ChartData { Name = "Completed",   Value = 42 },
+        new ChartData { Name = "In Progress", Value = 28 },
+    };
+
+    private List<ChartData> TeamsData = new()
+    {
+        new ChartData { Name = "Engineering", Value = 34 },
+        new ChartData { Name = "Design",      Value = 18 },
+        new ChartData { Name = "Marketing",   Value = 22 },
+        new ChartData { Name = "Sales",       Value = 14 },
+        new ChartData { Name = "Support",     Value = 10 },
+    };
+
+    // ── Hover State ─────────────────────────────────────────
+    private int StatusHovered = -1;
+    private int TeamsHovered = -1;
+
+    // ── Colour Palette ───────────────────────────────────────
+    private static readonly string[] Palette =
+    {
+        "#3a6fd8", "#e8543a", "#17a87a", "#e8a820",
+        "#8b4fd8", "#d83a7a", "#1aaccf", "#d87a20"
+    };
+
+    // ── Render Helper ────────────────────────────────────────
+    private RenderFragment RenderPieChart(string title, List<ChartData> data, ref int hoveredIndex)
+    {
+        // Capture locals so the lambda closes over them correctly
+        var capturedTitle = title;
+        var capturedData = data;
+        var capturedHovered = hoveredIndex;
+
+        return builder =>
+        {
+            int seq = 0;
+            double total = capturedData.Sum(d => d.Value);
+            double cumulative = 0;
+
+            // card wrapper
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "chart-card");
+
+            // title
+            builder.OpenElement(seq++, "h2");
+            builder.AddAttribute(seq++, "class", "chart-title");
+            builder.AddContent(seq++, capturedTitle);
+            builder.CloseElement();
+
+            // svg wrapper
+            builder.OpenElement(seq++, "div");
+            builder.AddAttribute(seq++, "class", "chart-wrapper");
+
+            builder.OpenElement(seq++, "svg");
+            builder.AddAttribute(seq++, "viewBox", "0 0 200 200");
+            builder.AddAttribute(seq++, "class", "pie-svg");
+            builder.AddAttribute(seq++, "xmlns", "http://www.w3.org/2000/svg");
+
+            for (int i = 0; i < capturedData.Count; i++)
+            {
+                var item = capturedData[i];
+                double pct = total > 0 ? item.Value / total : 0;
+                double startAngle = cumulative * 2 * Math.PI - Math.PI / 2;
+                double endAngle = (cumulative + pct) * 2 * Math.PI - Math.PI / 2;
+
+                double x1 = 100 + 80 * Math.Cos(startAngle);
+                double y1 = 100 + 80 * Math.Sin(startAngle);
+                double x2 = 100 + 80 * Math.Cos(endAngle);
+                double y2 = 100 + 80 * Math.Sin(endAngle);
+
+                int largeArc = pct > 0.5 ? 1 : 0;
+                string color = Palette[i % Palette.Length];
+
+                if (pct > 0.999)
+                {
+                    builder.OpenElement(seq++, "circle");
+                    builder.AddAttribute(seq++, "cx", "100");
+                    builder.AddAttribute(seq++, "cy", "100");
+                    builder.AddAttribute(seq++, "r", "80");
+                    builder.AddAttribute(seq++, "fill", color);
+                    builder.AddAttribute(seq++, "class", "pie-slice");
+                    builder.CloseElement();
+                }
+                else if (pct > 0)
+                {
+                    string ic = System.Globalization.CultureInfo.InvariantCulture.ToString();
+                    var ci = System.Globalization.CultureInfo.InvariantCulture;
+                    string d = $"M100,100 L{x1.ToString("F2", ci)},{y1.ToString("F2", ci)} A80,80 0 {largeArc},1 {x2.ToString("F2", ci)},{y2.ToString("F2", ci)} Z";
+
+                    builder.OpenElement(seq++, "path");
+                    builder.AddAttribute(seq++, "d", d);
+                    builder.AddAttribute(seq++, "fill", color);
+                    builder.AddAttribute(seq++, "class", "pie-slice");
+                    // tooltip
+                    builder.OpenElement(seq++, "title");
+                    builder.AddContent(seq++, $"{item.Name}: {item.Value} ({pct:P1})");
+                    builder.CloseElement();
+                    builder.CloseElement();
+                }
+
+                cumulative += pct;
+            }
+
+            // donut hole
+            builder.OpenElement(seq++, "circle");
+            builder.AddAttribute(seq++, "cx", "100");
+            builder.AddAttribute(seq++, "cy", "100");
+            builder.AddAttribute(seq++, "r", "44");
+            builder.AddAttribute(seq++, "fill", "var(--card-bg)");
+            builder.CloseElement();
+
+            // center count
+            builder.OpenElement(seq++, "text");
+            builder.AddAttribute(seq++, "x", "100");
+            builder.AddAttribute(seq++, "y", "96");
+            builder.AddAttribute(seq++, "text-anchor", "middle");
+            builder.AddAttribute(seq++, "class", "donut-label-num");
+            builder.AddContent(seq++, capturedData.Count.ToString());
+            builder.CloseElement();
+
+            builder.OpenElement(seq++, "text");
+            builder.AddAttribute(seq++, "x", "100");
+            builder.AddAttribute(seq++, "y", "112");
+            builder.AddAttribute(seq++, "text-anchor", "middle");
+            builder.AddAttribute(seq++, "class", "donut-label-sub");
+            builder.AddContent(seq++, "items");
+            builder.CloseElement();
+
+            builder.CloseElement(); // </svg>
+            builder.CloseElement(); // </div.chart-wrapper>
+
+            // legend
+            builder.OpenElement(seq++, "ul");
+            builder.AddAttribute(seq++, "class", "legend");
+
+            for (int i = 0; i < capturedData.Count; i++)
+            {
+                var item = capturedData[i];
+                double pct2 = total > 0 ? item.Value / total : 0;
+                string color = Palette[i % Palette.Length];
+
+                builder.OpenElement(seq++, "li");
+                builder.AddAttribute(seq++, "class", "legend-item");
+
+                builder.OpenElement(seq++, "span");
+                builder.AddAttribute(seq++, "class", "legend-dot");
+                builder.AddAttribute(seq++, "style", $"background:{color}");
+                builder.CloseElement();
+
+                builder.OpenElement(seq++, "span");
+                builder.AddAttribute(seq++, "class", "legend-name");
+                builder.AddContent(seq++, item.Name);
+                builder.CloseElement();
+
+                builder.OpenElement(seq++, "span");
+                builder.AddAttribute(seq++, "class", "legend-value");
+                builder.AddContent(seq++, item.Value.ToString());
+                builder.CloseElement();
+
+                builder.OpenElement(seq++, "span");
+                builder.AddAttribute(seq++, "class", "legend-pct");
+                builder.AddContent(seq++, pct2.ToString("P0"));
+                builder.CloseElement();
+
+                builder.CloseElement(); // </li>
+            }
+
+            builder.CloseElement(); // </ul>
+
+            builder.CloseElement(); // </div.chart-card>
+        };
+    }
+}
