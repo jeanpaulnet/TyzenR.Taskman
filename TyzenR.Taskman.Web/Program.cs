@@ -87,6 +87,28 @@ try
         });
     });
 
+    // Increase timeout
+    builder.Services.AddServerSideBlazor()
+    .AddCircuitOptions(options =>
+    {
+        // Increase the timeout to 5 minutes
+        options.DisconnectedCircuitMaxRetained = 100;
+        options.DisconnectedCircuitRetentionPeriod = TimeSpan.FromMinutes(5);
+    });
+
+    // Increase SignalR timeout specifically
+    builder.Services.AddSignalR(options =>
+    {
+        options.ClientTimeoutInterval = TimeSpan.FromMinutes(5);
+        options.KeepAliveInterval = TimeSpan.FromMinutes(1);
+    });
+
+    // If using Kestrel, increase request size for large file uploads/processing
+    builder.WebHost.ConfigureKestrel(options =>
+    {
+        options.Limits.MaxRequestBodySize = 100 * 1024 * 1024; // 100MB Example
+    });
+
     var app = builder.Build();
 
     app.UseExceptionHandler("/Error");
